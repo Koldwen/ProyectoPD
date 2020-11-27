@@ -1,2 +1,5 @@
 -- Proyecto PD.
--- Hola
+-- Búsqueda en Escalada con reinicio
+-- Enfriamiento Simulado
+-- Algoritmo Genético
+-- PSO
