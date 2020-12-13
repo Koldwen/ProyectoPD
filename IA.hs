@@ -10,6 +10,16 @@ import Prelude
 import System.Random
 import System.IO.Unsafe  -- be careful! 
 
+--TIPOS
+type Ind a = [a]
+type Val = Double
+
+type Gi a = (() -> Ind a)
+type Gs a = (Ind a -> Ind a)
+type Fv a = (Ind a -> Val)
+type Me = (Val -> Val -> Bool)
+
+type Solucion a = (Ind a, Val)
 -- type Problema_enfriamiento = (gi, gs, fv, m, t, d, ne, ni)  
 
 aleatorio :: (Random a, Num a) => a -> a -> a
@@ -37,12 +47,14 @@ b_escalada:
             Devuelve: ( [ estado ] , valoración del estado )
 --}
   
-b_escalada :: (Num b) => (() -> [a]) -> ([a] -> [a]) -> ([a] -> b) -> (b -> b -> Bool) -> ([a], b)
-b_escalada genera_inicial genera_sucesor f_valoracion mejor = 
-    b_escalada_aux actual sucesor genera_sucesor f_valoracion mejor
+b_escalada :: Gi a -> Gs a -> Fv a -> Me -> Solucion a
+b_escalada gi gs fv me = 
+    b_escalada_aux actual sucesor gs fv me
     where
-        sucesor = genera_sucesor actual
-        actual = genera_inicial()
+        i = gi()
+        s = gs i
+        sucesor = (s, fv s)
+        actual = (i, fv i)
 
 {--
 b_escalada_aux:
@@ -62,14 +74,13 @@ b_escalada_aux:
             Devuelve: ( [ estado ] , valoración del estado )
 --}
 
-b_escalada_aux :: (Num b) => [a] -> [a] -> ([a] -> [a]) -> ([a] -> b) -> (b -> b -> Bool) -> ([a], b)
-b_escalada_aux actual vecino genera_sucesor f_valoracion mejor
-    | mejor v_vecino v_actual = b_escalada_aux vecino sucesor genera_sucesor f_valoracion mejor
-    | otherwise = (actual, v_actual)
+b_escalada_aux :: Solucion a -> Solucion a -> Gs a -> Fv a -> Me -> Solucion a
+b_escalada_aux actual vecino gs fv me
+    | me (snd vecino) (snd actual) = b_escalada_aux vecino vecino' gs fv me
+    | otherwise = actual
     where
-        sucesor = genera_sucesor vecino
-        v_actual = f_valoracion actual
-        v_vecino = f_valoracion vecino
+        sucesor = gs $ fst vecino
+        vecino' = (sucesor, fv sucesor)
 
 {--
 b_escalada_reinicio:
@@ -91,12 +102,12 @@ b_escalada_reinicio:
             Devuelve: ( [ estado ] , valoración del estado )
 --}
 
-b_escalada_reinicio :: (Num b) => (() -> [a]) -> ([a] -> [a]) -> ([a] -> b) -> (b -> b -> Bool) -> Int -> ([a], b)
-b_escalada_reinicio genera_inicial genera_sucesor f_valoracion mejor n_reinicios
+b_escalada_reinicio :: Gi a -> Gs a -> Fv a -> Me -> Int -> Solucion a
+b_escalada_reinicio gi gs fv me n_reinicios
     | n_reinicios <= 0  = error "El número de reinicios debe ser mayor o igual a 1."
-    | otherwise         = b_escalada_reinicio_aux genera_inicial genera_sucesor f_valoracion mejor (n_reinicios-1) sol
+    | otherwise         = b_escalada_reinicio_aux gi gs fv me (n_reinicios-1) sol
     where
-        sol = b_escalada genera_inicial genera_sucesor f_valoracion mejor
+        sol = b_escalada gi gs fv me
 
 {--
 b_escalada_reinicio_aux:
@@ -119,13 +130,13 @@ b_escalada_reinicio_aux:
             Devuelve: ( [ estado ] , valoración del estado )
 --}
 
-b_escalada_reinicio_aux :: (Num b) => (() -> [a]) -> ([a] -> [a]) -> ([a] -> b) -> (b -> b -> Bool) -> Int -> ([a], b) -> ([a], b)
+b_escalada_reinicio_aux :: Gi a -> Gs a -> Fv a -> Me -> Int -> Solucion a -> Solucion a
 b_escalada_reinicio_aux _ _ _ _ 0 sol = sol
-b_escalada_reinicio_aux genera_inicial genera_sucesor f_valoracion mejor n_reinicios sol
-    | mejor (snd c) (snd sol)   = b_escalada_reinicio_aux genera_inicial genera_sucesor f_valoracion mejor (n_reinicios-1) c
-    | otherwise                 = b_escalada_reinicio_aux genera_inicial genera_sucesor f_valoracion mejor (n_reinicios-1) sol
+b_escalada_reinicio_aux gi gs fv me n_reinicios sol
+    | me (snd c) (snd sol)   = b_escalada_reinicio_aux gi gs fv me (n_reinicios-1) c
+    | otherwise                 = b_escalada_reinicio_aux gi gs fv me (n_reinicios-1) sol
     where
-        c = b_escalada genera_inicial genera_sucesor f_valoracion mejor
+        c = b_escalada gi gs fv me
 
 
 --type Par a = (a,a)
@@ -138,37 +149,67 @@ b_escalada_reinicio_aux genera_inicial genera_sucesor f_valoracion mejor n_reini
 --type M = (Double, Double, Bool)
 --type P_optimo a = ((() -> [a]), ([a] -> [a]), ([a] -> Double), (Double, Double, Bool))
 
-e_simulado :: (() -> [a]) -> ([a] -> [a]) -> ([a] -> Double) -> (Double -> Double -> Bool) -> Double -> Double -> Int -> Int -> ([a], Double)
-e_simulado gi gs fv m t d ne ni
+
+e_simulado :: Gi a -> Gs a -> Fv a -> Me -> Double -> Double -> Int -> Int -> Solucion a
+e_simulado gi gs fv me t d ne ni
     | ne <= 0 = error "El número de enfriamientos debe ser mayor que cero."
     | ni <= 0 = error "El número de iteraciones debe ser mayor que cero."
-    | otherwise = e_simulado_enfr gs fv m t d ne ni actual actual
+    | otherwise = e_simulado_enfr gs fv me t d ne ni actual' actual'
     where
         actual = gi()
+        v_actual = fv actual
+        actual' = (actual, v_actual)
 
-e_simulado_enfr :: ([a] -> [a]) -> ([a] -> Double) -> (Double -> Double -> Bool) -> Double -> Double -> Int -> Int -> [a] -> [a] -> ([a], Double)
-e_simulado_enfr _ fv _ _ _ 0 _ _ mejor = (mejor, fv mejor)
-e_simulado_enfr gs fv m t d ne ni actual mejor = 
-    e_simulado_enfr gs fv m t' d ne' ni (fst fg) (snd fg)
+e_simulado_enfr :: Gs a -> Fv a -> Me -> Double -> Double -> Int -> Int -> Solucion a -> Solucion a -> Solucion a
+e_simulado_enfr _ _ _ _ _ 0 _ _ mejor = mejor
+e_simulado_enfr gs fv me t d ne ni actual mejor = 
+    e_simulado_enfr gs fv me t' d ne' ni (fst nueva_iter) (snd nueva_iter)
     where
         t' = t * d
         ne' = ne-1
-        fg = e_simulado_iter gs fv m t' d ne' ni actual mejor
+        nueva_iter = e_simulado_iter gs fv me t' d ni actual mejor
 
-
-e_simulado_iter :: ([a] -> [a]) -> ([a] -> Double) -> (Double -> Double -> Bool) -> Double -> Double -> Int -> Int -> [a] -> [a] -> ([a], [a])
-e_simulado_iter _ _ _ _ _ _ 0 actual mejor = (actual, mejor)
-e_simulado_iter gs fv m t d ne ni actual mejor
-    | acepta = e_simulado_iter gs fv m t d ne ni' candidata n_mejor
-    | otherwise = e_simulado_iter gs fv m t d ne ni' actual mejor
+e_simulado_iter :: Gs a -> Fv a -> Me -> Double -> Double -> Int -> Solucion a-> Solucion a -> (Solucion a, Solucion a)
+e_simulado_iter _ _ _ _ _ 0 actual mejor = (actual, mejor) 
+e_simulado_iter gs fv me t d ni actual mejor
+    | aceptar_candidata = e_simulado_iter gs fv me t d l candidata n_mejor
+    | otherwise = e_simulado_iter gs fv me t d l actual mejor
     where 
-        candidata = gs actual
-        v_candidata = fv candidata
-        v_actual = fv actual
-        incremento = v_candidata - v_actual
-        n_mejor = if v_candidata > (fv mejor) then candidata else mejor
-        ni' = ni - 1
-        acepta = incremento < 0 || sorteo v_candidata v_actual t
+        sucesor = gs $ fst actual
+        candidata = (sucesor, fv sucesor)
+        incremento = snd candidata - snd actual
+        n_mejor = candidata
+        --n_mejor = if me (snd candidata) (snd mejor) then candidata else mejor
+        l = ni - 1
+        aceptar_candidata = True
+        --aceptar_candidata = incremento < 0 || sorteo (snd candidata) (snd actual) t 
+
+{--
+def iniciar(self):
+        t = self.t_inicial
+        factor_descenso = self.factor_descenso
+        actual = self.genera_inicial()
+        valor_actual = self.f_valoracion(actual)
+        mejor  = actual
+        valor_mejor = valor_actual
+
+        for _ in range(self.n_enfriamientos):
+            for _ in range(self.n_iteraciones):
+                candidata = self.genera_sucesor(actual)
+                valor_candidata = self.f_valoracion(candidata)
+
+                if self.mejor(valor_candidata, valor_actual) or self.sorteo(valor_candidata, valor_actual, t):
+                    actual = candidata
+                    valor_actual = valor_candidata
+
+                if self.mejor(valor_actual, valor_mejor):
+                    mejor = actual
+                    valor_mejor = valor_actual
+
+            t *= factor_descenso
+
+        return (mejor, valor_mejor)
+--}
 
 sorteo :: Double -> Double -> Double -> Bool             
 sorteo vc va t
