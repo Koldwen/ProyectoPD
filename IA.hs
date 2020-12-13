@@ -13,7 +13,7 @@ import System.IO.Unsafe  -- be careful!
 --TIPOS
 type Ind a = [a]
 type Val = Double
-
+type Pr a = (Solucion a, Solucion a)
 type Gi a = (() -> Ind a)
 type Gs a = (Ind a -> Ind a)
 type Fv a = (Ind a -> Val)
@@ -149,7 +149,7 @@ b_escalada_reinicio_aux gi gs fv me n_reinicios sol
 --type M = (Double, Double, Bool)
 --type P_optimo a = ((() -> [a]), ([a] -> [a]), ([a] -> Double), (Double, Double, Bool))
 
-
+{--
 e_simulado :: Gi a -> Gs a -> Fv a -> Me -> Double -> Double -> Int -> Int -> Solucion a
 e_simulado gi gs fv me t d ne ni
     | ne <= 0 = error "El número de enfriamientos debe ser mayor que cero."
@@ -159,30 +159,48 @@ e_simulado gi gs fv me t d ne ni
         actual = gi()
         v_actual = fv actual
         actual' = (actual, v_actual)
-
-e_simulado_enfr :: Gs a -> Fv a -> Me -> Double -> Double -> Int -> Int -> Solucion a -> Solucion a -> Solucion a
+--}
+e_simulado_enfr :: (Show a) => Gs a -> Fv a -> Me -> Double -> Double -> Int -> Int -> Solucion a -> Solucion a -> Solucion a
+e_simulado_enfr gs fv me t d ne ni actual mejor = do
+    let t' = t * d
+    let ne' = ne-1
+    let nueva_iter = e_simulado_iter gs fv me t' ni actual mejor
+    if ne == 0
+        then do
+            l
+        else do
+            e_simulado_enfr gs fv me t' d ne' ni (fst nueva_iter) (snd nueva_iter)
+{--
+e_simulado_enfr :: (Show a) => Gs a -> Fv a -> Me -> Double -> Double -> Int -> Int -> Solucion a -> Solucion a -> Solucion a
 e_simulado_enfr _ _ _ _ _ 0 _ _ mejor = mejor
-e_simulado_enfr gs fv me t d ne ni actual mejor = 
+e_simulado_enfr gs fv me t d ne ni actual mejor =
     e_simulado_enfr gs fv me t' d ne' ni (fst nueva_iter) (snd nueva_iter)
     where
         t' = t * d
         ne' = ne-1
-        nueva_iter = e_simulado_iter gs fv me t' d ni actual mejor
+        --nueva_iter = (actual, mejor)
+        nueva_iter = e_simulado_iter gs fv me t' ni actual mejor --}
 
-e_simulado_iter :: Gs a -> Fv a -> Me -> Double -> Double -> Int -> Solucion a-> Solucion a -> (Solucion a, Solucion a)
-e_simulado_iter _ _ _ _ _ 0 actual mejor = (actual, mejor) 
-e_simulado_iter gs fv me t d ni actual mejor
-    | aceptar_candidata = e_simulado_iter gs fv me t d l candidata n_mejor
-    | otherwise = e_simulado_iter gs fv me t d l actual mejor
+e_simulado_iter :: (Show a) => Gs a -> Fv a -> Me -> Double -> Int -> Solucion a-> Solucion a -> Pr a
+e_simulado_iter _ _ _ _ 0 actual mejor = (actual, mejor) 
+e_simulado_iter gs fv me t ni actual mejor
+    | aceptar_candidata = e_simulado_iter gs fv me t ni' candidata n_mejor
+    | otherwise = e_simulado_iter gs fv me t ni' actual mejor
     where 
         sucesor = gs $ fst actual
         candidata = (sucesor, fv sucesor)
         incremento = snd candidata - snd actual
-        n_mejor = candidata
-        --n_mejor = if me (snd candidata) (snd mejor) then candidata else mejor
-        l = ni - 1
-        aceptar_candidata = True
-        --aceptar_candidata = incremento < 0 || sorteo (snd candidata) (snd actual) t 
+        n_mejor = if me (snd candidata) (snd mejor) then candidata else mejor
+        ni' = ni - 1
+        aceptar_candidata = incremento < 0 || sorteo (snd candidata) (snd actual) t 
+
+sorteo :: Double -> Double -> Double -> Bool             
+sorteo vc va t
+    | r <= p = True
+    | otherwise = False
+    where
+        p = exp(-abs( (vc-va) / t)) :: Double
+        r = prob :: Double
 
 {--
 def iniciar(self):
@@ -211,13 +229,7 @@ def iniciar(self):
         return (mejor, valor_mejor)
 --}
 
-sorteo :: Double -> Double -> Double -> Bool             
-sorteo vc va t
-    | r <= p = True
-    | otherwise = False
-    where
-        p = exp(-abs( (vc-va) / t)) :: Double
-        r = prob :: Double
+
 
 {--
 FUNCION ENFRIAMIENTO-SIMULADO(T-INICIAL,FACTOR-DESCENSO,
