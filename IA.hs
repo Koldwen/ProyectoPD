@@ -20,11 +20,11 @@ type Fv a = (Ind a -> Val)
 type Me = (Val -> Val -> Bool)
 
 data Solucion a = Solucion (Ind a) Val
-    deriving Show
-    
-data Problema a = Problema (Gi a) (Gs a) (Fv a) Me 
 
--- type Problema_enfriamiento = (gi, gs, fv, m, t, d, ne, ni)  
+instance (Show a) => Show (Solucion a) where
+    show (Solucion i v) = "Solución: "++(show i)++"\nValoración: "++(show v)
+    
+data Problema a = Problema (Gi a) (Gs a) (Fv a) Me
 
 prob :: IO Double
 prob =  do
@@ -129,6 +129,8 @@ b_escalada_reinicio p@(Problema _ gs fv me) n_reinicios = do
             actual <- b_escalada p    
             b_escalada_reinicio_aux p (n_reinicios-1) actual
 
+
+
 {--
 b_escalada_reinicio_aux:
             Recibe:
@@ -210,19 +212,24 @@ como mínimo, de forma natural:
 
 Dos usos de cada concepto básico de programación funcional visto en la asignatura. Es
 decir: al menos usar 
-2 funciones básicas de prelude y Data.List, 
-definir 2 funciones recursivas, 
-definir 2 funciones por patrones, 
-2 usos de guardas, 
-2 usos de case of, 
-2 usos de listas por comprensión, 
-2 usos de orden superior, declaraciones de tipos para todas las funciones definidas, 
-2 usos de evaluación perezosa, etc.
+2 funciones básicas de prelude y Data.List, - COMPLETADO
+definir 2 funciones recursivas, - COMPLETADO
+definir 2 funciones por patrones, - COMPLETADO
+2 usos de guardas, - COMPLETADO
+2 usos de n
+2 usos de listas por comprensión, - COMPLETADO
+2 usos de orden superior, declaraciones de tipos para todas las funciones definidas, -- COMPLETADO (*)
+2 usos de evaluación perezosa, etc. -- NO COMPLETADO
 
-Creación de un módulo
+Creación de un módulo - COMPLETADO
 
-Creación de dos tipos de datos nuevos y usos de éstos.
+Creación de dos tipos de datos nuevos y usos de éstos. --COMPLETADO
 
 Uso de al menos dos de tipos de datos abstractos o librerías vistos en la asignatura (por
-ejemplo, pilas, colas, map, matrix, array).
+ejemplo, pilas, colas, map, matrix, array).  -- NO COMPLETADO
+
+Interactivo
+Uso de ficheros
+
+
 --}

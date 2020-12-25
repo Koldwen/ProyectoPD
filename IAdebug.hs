@@ -4,96 +4,215 @@
 -- Algoritmo Genético
 -- PSO
 -- ARCHIVO: IA
+module IAdebug where
     
 import Prelude
 import System.Random
-import System.IO.Unsafe  -- be careful! 
+import System.IO.Unsafe ( unsafePerformIO )  -- be careful! 
 
 --TIPOS
 type Ind a = [a]
 type Val = Double
-
-type Gi a = (() -> Ind a)
-type Gs a = (Ind a -> Ind a)
+--type Pr a = (Solucion a, Solucion a)
+type Gi a = (IO (Ind a))
+type Gs a = (Ind a -> IO (Ind a))
 type Fv a = (Ind a -> Val)
 type Me = (Val -> Val -> Bool)
 
-type Solucion a = (Ind a, Val)
--- type Problema_enfriamiento = (gi, gs, fv, m, t, d, ne, ni)  
+data Solucion a = Solucion (Ind a) Val
+    deriving Show
+    
+data Problema a = Problema (Gi a) (Gs a) (Fv a) Me 
 
-aleatorio :: (Random a, Num a) => a -> a -> a
-aleatorio i j = unsafePerformIO (randomRIO (i,j))
+prob :: IO Double
+prob =  do
+            xs <- (randomRIO (1, 10000))
+            return (xs/10000)
 
-prob :: (Random a, Enum a, Fractional a) => a
-prob = [0.0001,0.0002..1]!!(unsafePerformIO (randomRIO (0,9999)))    
+removeIO :: IO a -> a
+removeIO s = unsafePerformIO s
 
 {--
-e_simulado :: Gi a -> Gs a -> Fv a -> Me -> Double -> Double -> Int -> Int -> Solucion a
-e_simulado gi gs fv me t d ne ni
-    | ne <= 0 = error "El número de enfriamientos debe ser mayor que cero."
-    | ni <= 0 = error "El número de iteraciones debe ser mayor que cero."
-    | otherwise = e_simulado_enfr gs fv me t d ne ni actual' actual'
-    where
-        actual = gi()
-        v_actual = fv actual
-        actual' = (actual, v_actual)
+b_escalada:
+            Recibe:
+                    Función Genera Estado Inicial
+                        - Recibe : una tupla vacia para que se pueda producir la aleatoriedad.
+                        - Devuelve: un estado inicial.
+                    Función Genera Sucesor
+                        - Recibe: estado.
+                        - Devuelve: estado.
+                    Función Valoración
+                        - Recibe: estado
+                        - Devuelve: valoración de ese estado.
+                    Función Mejor
+                        - Recibe: dos valoraciones.
+                        - Devuelve: Bool.
+            Devuelve: ( [ estado ] , valoración del estado )
 --}
 
-e_simulado_enfr :: (Show a) => Gs a -> Fv a -> Me -> Double -> Double -> Int -> Int -> Solucion a -> Solucion a -> IO()
-e_simulado_enfr gs fv me t d ne ni actual mejor = do
+{- lista :: Int -> IO [Int]
+lista n = lista_aux n []
+lista_aux :: Int -> [Int] -> IO [Int]
+lista_aux n ls = do
+    if n == 0
+        then
+            return ls
+        else do
+            x <- aleatorio 1 9
+            lista_aux (n-1) (x:ls) -}
+    -- putStrLn "----------------------------------------------"
+    -- putStrLn "| MODO DEBUG | ALGOTIRMO BÚSQUEDA EN ESCALADA|"
+    -- putStrLn "----------------------------------------------"  
+b_escalada :: Problema a -> IO (Solucion a)
+b_escalada p@(Problema gi gs fv me) = do
+    i <- gi
+    s <- gs i
+    let sucesor = Solucion s (fv s)
+    let actual = Solucion i (fv i)
+    b_escalada_aux p actual sucesor
+
+b_escalada_aux :: Problema a -> Solucion a -> Solucion a -> IO (Solucion a)
+b_escalada_aux p@(Problema _ gs fv me) actual@(Solucion i_act v_act) sucesor@(Solucion i_suc v_suc) = do
+    i_sucesor' <- gs $ i_suc
+    let sucesor' = Solucion i_sucesor' (fv i_sucesor')
+    if me (v_suc) (v_act)
+        then
+            b_escalada_aux p sucesor sucesor'
+        else
+            return actual
+    
+{--
+b_escalada_reinicio:
+            Recibe:
+                    Función Genera Estado Inicial
+                        - Recibe : una tupla vacia para que se pueda producir la aleatoriedad.
+                        - Devuelve: un estado inicial.
+                    Función Genera Sucesor
+                        - Recibe: estado.
+                        - Devuelve: estado.
+                    Función Valoración
+                        - Recibe: estado
+                        - Devuelve: valoración de ese estado.
+                    Función Mejor
+                        - Recibe: dos valoraciones.
+                        - Devuelve: Bool.
+                    Número Reinicios: Número    
+            
+            Devuelve: ( [ estado ] , valoración del estado )
+--}
+
+b_escalada_reinicio :: Problema a -> Int -> IO (Solucion a)
+b_escalada_reinicio p@(Problema _ gs fv me) n_reinicios = do
+    if n_reinicios <= 0
+        then
+            error "El número de reinicios debe ser mayor o igual a 1."
+        else do
+            putStrLn "----------------------------------------------"
+            putStrLn "| MODO DEBUG | ALGOTIRMO BÚSQUEDA EN ESCALADA|"
+            putStrLn "----------------------------------------------"
+            actual <- b_escalada p    
+            b_escalada_reinicio_aux p (n_reinicios-1) actual
+
+{--
+b_escalada_reinicio_aux:
+            Recibe:
+                    Función Genera Estado Inicial
+                        - Recibe : una tupla vacia para que se pueda producir la aleatoriedad.
+                        - Devuelve: un estado inicial.
+                    Función Genera Sucesor
+                        - Recibe: estado.
+                        - Devuelve: estado.
+                    Función Valoración
+                        - Recibe: estado
+                        - Devuelve: valoración de ese estado.
+                    Función Mejor
+                        - Recibe: dos valoraciones.
+                        - Devuelve: Bool.
+                    Número Reinicios: Número   
+                    Sol:  ( [ mejor estado actual ] , valoración del estado )
+            
+            Devuelve: ( [ estado ] , valoración del estado )
+--}
+
+b_escalada_reinicio_aux :: Problema a -> Int -> Solucion a -> IO (Solucion a)
+b_escalada_reinicio_aux _ 0 sol = return sol
+b_escalada_reinicio_aux p@(Problema _ gs fv me) n_reinicios actual@(Solucion i_act v_act) = do
+    sucesor@(Solucion i_suc v_suc) <- b_escalada p    
+    if me (v_suc) (v_act)
+        then 
+            putStrLn $ "Iteracion: " ++ (show n_reinicios) ++ "  |  " ++ (show )
+            b_escalada_reinicio_aux p (n_reinicios-1) sucesor
+        else
+            b_escalada_reinicio_aux p (n_reinicios-1) actual
+
+e_simulado :: Problema a -> Double -> Double -> Int -> Int -> IO (Solucion a)
+e_simulado p@(Problema gi gs fv me) t d ne ni = do
+    if ne <= 0
+        then
+            error "El número de enfriamientos debe ser mayor que cero."
+        else
+            if ni <= 0
+                then
+                    error "El número de iteraciones debe ser mayor que cero."
+                else do
+                    i_act <- gi
+                    let actual = (Solucion i_act (fv i_act))
+                    e_simulado_enfr p t d ne ni actual actual
+
+e_simulado_enfr :: Problema a -> Double -> Double -> Int -> Int -> Solucion a -> Solucion a -> IO (Solucion a)
+e_simulado_enfr _ _ _ 0 _ _ mejor= return mejor
+e_simulado_enfr p t d ne ni actual mejor = do
     let t' = t * d
     let ne' = ne-1
-    let nueva_iter = e_simulado_iter gs fv me t' d ni actual mejor
-    if ne == 0
-        then do
-            putStrLn $ show mejor
-            return()
-        else do
-            putStrLn $ show nueva_iter
-            e_simulado_enfr gs fv me t' d ne' ni (fst nueva_iter) (snd nueva_iter)
+    (actual',mejor') <- e_simulado_iter p t' ni actual mejor
+    e_simulado_enfr p t' d ne' ni actual' mejor'
+
+e_simulado_iter :: Problema a -> Double -> Int -> Solucion a-> Solucion a -> IO (Solucion a, Solucion a)
+e_simulado_iter _ _ 0 actual mejor = return (actual, mejor)
+e_simulado_iter p@(Problema _ gs fv me) t ni actual@(Solucion i_act v_act) mejor@(Solucion i_mej v_mej) = do
+    i_suc <- gs i_act
+    let sucesor@(Solucion i_suc' v_suc') = Solucion i_suc (fv i_suc)
+    let incremento = v_suc' - v_act
+    let mejor' = if me v_suc' v_mej then sucesor else mejor
+    let ni' = ni - 1
+    gana_sorteo <- sorteo v_suc' v_act t
+    let aceptar_candidata = incremento < 0 || gana_sorteo
+    if aceptar_candidata
+        then
+            e_simulado_iter p t ni' sucesor mejor'
+        else
+            e_simulado_iter p t ni' actual mejor'
         
+sorteo :: Double -> Double -> Double -> IO Bool             
+sorteo vc va t = do
+    let p = exp(-abs( (vc-va) / t))
+    r <- prob
+    return (r <= p)
 
-e_simulado_iter :: Gs a -> Fv a -> Me -> Double -> Double -> Int -> Solucion a-> Solucion a -> (Solucion a, Solucion a)
-e_simulado_iter _ _ _ _ _ 0 actual mejor = (actual, mejor) 
-e_simulado_iter gs fv me t d ni actual mejor
-    | aceptar_candidata = e_simulado_iter gs fv me t d l candidata n_mejor
-    | otherwise = e_simulado_iter gs fv me t d l actual mejor
-    where 
-        sucesor = gs $ fst actual
-        candidata = (sucesor, fv sucesor)
-        incremento = snd candidata - snd actual
-        --n_mejor = candidata
-        n_mejor = if me (snd candidata) (snd mejor) then candidata else mejor
-        l = ni - 1
-        --aceptar_candidata = True
-        aceptar_candidata = incremento < 0 || sorteo (snd candidata) (snd actual) t 
+{--
+        Para la superación del trabajo, el código debe ser programación funcional y contener
+como mínimo, de forma natural:
+
+Dos usos de cada concepto básico de programación funcional visto en la asignatura. Es
+decir: al menos usar 
+2 funciones básicas de prelude y Data.List, - COMPLETADO
+definir 2 funciones recursivas, - COMPLETADO
+definir 2 funciones por patrones, - COMPLETADO
+2 usos de guardas, - COMPLETADO
+2 usos de case of, 
+2 usos de listas por comprensión, - COMPLETADO
+2 usos de orden superior, declaraciones de tipos para todas las funciones definidas, -- COMPLETADO (*)
+2 usos de evaluación perezosa, etc. -- NO COMPLETADO
+
+Creación de un módulo - COMPLETADO
+
+Creación de dos tipos de datos nuevos y usos de éstos. --COMPLETADO
+
+Uso de al menos dos de tipos de datos abstractos o librerías vistos en la asignatura (por
+ejemplo, pilas, colas, map, matrix, array).  -- NO COMPLETADO
+
+Interactivo
+Uso de ficheros
 
 
-sorteo :: Double -> Double -> Double -> Bool             
-sorteo vc va t
-    | r <= p = True
-    | otherwise = False
-    where
-        p = exp(-abs( (vc-va) / t)) :: Double
-        r = prob :: Double
-
-genera_inicial :: () -> [Int]
-genera_inicial _ = [aleatorio 1 9 | _ <- [1..5]]
-
-genera_sucesor :: [Int] -> [Int]
-genera_sucesor actual = (take (i-1) actual) ++ [n] ++ (drop i actual)
-    where
-        i = aleatorio 1 (length actual-1)
-        n = aleatorio 1 9
-
-f_valoracion :: [Int] -> Double
-f_valoracion l = fromIntegral $ sum l 
-
-mejor :: Double -> Double -> Bool
-mejor v_candidata v_actual = v_candidata > v_actual   
-
-actual = genera_inicial()
-sucesor = genera_sucesor actual
-
-a = (actual, f_valoracion actual)
-b = (sucesor, f_valoracion sucesor)
+--}
