@@ -231,20 +231,33 @@ data Perceptron = P {
                         fActivacion :: (Double -> Double),
                         fDerivada :: (Double -> Double)
                     }
-data Red    = O (Vector Perceptron) Red
+
+data Red    = E (Vector Perceptron) Red
+            | O (Vector Perceptron) Red
             | S (Vector Perceptron)
 
 vector :: Vector Int
 vector = V.fromList [5]
 
-
 -- Número de perceptrones por capa, Pesos de cada perceptron, Funciones de cada capa
--- 1 -1 4 [3,2,1] [Funciones] [Derivadas] -> Red 
-crear :: Double -> Double -> Int -> [Int] -> [Double -> Double] -> [Double -> Double] -> Red
+-- 1 -1 [4,3,2,1] [Funciones] [Derivadas] -> Red 
+crear :: Double -> Double -> [Int] -> [Double -> Double] -> [Double -> Double] -> Red
+crear w a (c:cs) fs ds = E (V.fromList [ P 0 [ w | _ <- [1..p_sup]] id id | _ <- [1..c]]) (crear' w a cs fs ds)
+    where 
+        p_sup = P.head cs
+
+crear' :: Double -> Double -> [Int] -> [Double -> Double] -> [Double -> Double] -> Red
+crear' w a [c] (f:fs) (d:ds) = S (V.fromList [ P a [ w | _ <- [1..c-1]] f d | _ <- [1..c]])
+crear' w a (c:cs) (f:fs) (d:ds) = O (V.fromList [ (P a [ w |  _ <- [0..p_sup]] f d) | _ <- [1..c] ]) (crear' w a cs fs ds)
+    where 
+        p_sup = P.head cs
+
 -- crear w a e [c] (f:fs) (d:ds) = S (V.fromList [ P a [w] f d | _ <- [1..c]])
 -- crear w a e (c:cs) (f:fs) (d:ds) = O (V.fromList [ (P a [ w |  _ <- [0..P.head cs]] f d) | x <- [1..c] ]) (crear w a c cs fs ds)
-crear w a e [c] (f:fs) (d:ds) = S (V.fromList [ P a [ w | _ <- [1..e+1]] f d | _ <- [1..c]])
-crear w a e (c:cs) (f:fs) (d:ds) = O (V.fromList [ (P a [ w |  _ <- [1..e+1]] f d) | x <- [1..c] ]) (crear w a c cs fs ds)
+-- crear w a e cs fs ds = 
+-- crear w a e cs fs ds =    
+-- crear' w a e [c] (f:fs) (d:ds) = S (V.fromList [ P a [ w | _ <- [1..e+1]] f d | _ <- [1..c]])
+-- crear' w a e (c:cs) (f:fs) (d:ds) = O (V.fromList [ (P a [ w |  _ <- [1..e+1]] f d) | x <- [1..c] ]) (crear w a c cs fs ds)
 
 -- crear 1.0 -1 2 [2,2,2] [sigmoide, sigmoide, sigmoide]
 
@@ -255,7 +268,12 @@ mostrar (S ps) = do
     let aux = V.map (\p -> putStrLn ("a0="P.++show (eFicticia p) P.++ ", ws="P.++ show (pesos p))) ps
     P.sequence_ aux
     return ()
-    
+mostrar (E ps r) = do
+    let aux = V.map (\p -> putStrLn ("a0="P.++show (eFicticia p) P.++ ", ws="P.++ show (pesos p))) ps
+    P.sequence_ aux
+    putStrLn "--------------"
+    res <- mostrar r
+    return res    
 mostrar (O ps r) = do
     let aux = V.map (\p -> putStrLn ("a0="P.++show (eFicticia p) P.++ ", ws="P.++ show (pesos p))) ps
     P.sequence_ aux
@@ -275,28 +293,48 @@ mPer p = [eFicticia p]P.++(pesos p)
 predecir :: Red -> [Double] -> [Double]
 predecir (S v) ls = salida
     where
-        salida = [ salidaPerceptron (v V.! x) ls |  x <- [0..((V.length v)-1)]] 
+        salida = [ fActivacion (v V.! x) $ ls!!x + (eFicticia (v V.!x)) * P.head (pesos (v V.!x))  | x <- [0..(V.length v)-1  ]]
 
 predecir (O v r) ls = predecir r salida
     where
-        salida = [ salidaPerceptron (v V.! x) ls |  x <- [0..((V.length v)-1)]] 
+        salida = [ calculaSalida i |  i <- [0..n_pesos-1]]
+        n_pesos = (P.length (pesos (v V.! 0))) - 1  
+        ls' = [ fActivacion (v V.! x) $ ls!!x + (eFicticia (v V.!x)) * P.head (pesos (v V.!x))  | x <- [0..(V.length v)-1  ]]
+        calculaSalida i = P.sum $ P.map (\(a,w) -> a*w) $ P.zip ls' $ [ (pesos p)!!i | j <- [0..(V.length v)-1], let p = (v V.! j)]
+
+predecir (E v r) ls = predecir r salida
+    where
+        salida = [ calculaSalida i |  i <- [0..n_pesos-1]]
+        n_pesos = P.length $ pesos (v V.! 0)
+        calculaSalida i = P.sum $ P.map (\(a,w) -> a*w) $ P.zip ls $ [ (pesos p)!!i | j <- [0..(V.length v)-1], let p = (v V.! j)]
+ 
 
 salidaPerceptron :: Perceptron -> [Double] -> Double
 salidaPerceptron (P a ws f _ ) ls = f $ P.sum $ P.map (\(a,b) -> a*b) (P.zip ws (a:ls))
 
-
-
 propHaciaDelante :: Red -> [Double] -> [[(Perceptron, Double)]]
 propHaciaDelante (S v) ls = [resultado]
     where
+        salida = [ fActivacion (v V.! x) $ ls!!x + (eFicticia (v V.!x)) * P.head (pesos (v V.!x))  | x <- [0..(V.length v)-1  ]]
+        ls' = [ fActivacion (v V.! x) $ ls!!x + (eFicticia (v V.!x)) * P.head (pesos (v V.!x))  | x <- [0..(V.length v)-1  ]]
         resultado = [ (p, input p) |  x <- [0..((V.length v)-1)], let p = (v V.! x)] 
         input p = P.sum $ P.map (\(a,b) -> a*b) (P.zip (pesos p) ((eFicticia p):ls))
         
 propHaciaDelante (O v r) ls = resultado : (propHaciaDelante r salida)
     where
-        resultado = [ (p,input p) |  x <- [0..((V.length v)-1)], let p = (v V.! x)] 
-        input p = P.sum $ P.map (\(a,b) -> a*b) (P.zip (pesos p) ((eFicticia p):ls))
-        salida = [ salidaPerceptron (v V.! x) ls |  x <- [0..((V.length v)-1)]] 
+        resultado = P.zip (V.toList v) ls
+        salida = [ calculaSalida i |  i <- [0..n_pesos-1]]
+        n_pesos = (P.length (pesos (v V.! 0))) - 1  -- NOS HEMOS QUEDADO POR AQUÍ
+        --ls' = [ ls!!x + (eFicticia (v V.!x)) * P.head (pesos (v V.!x))  | x <- [0..(V.length v)-1  ]]
+        ls' = [ fActivacion (v V.! x) $ ls!!x + (eFicticia (v V.!x)) * P.head (pesos (v V.!x))  | x <- [0..(V.length v)-1  ]]
+        calculaSalida i = P.sum $ P.map (\(a,w) -> a*w) $ P.zip ls' $ [ (pesos p)!!i | j <- [0..(V.length v)-1], let p = (v V.! j)]
+
+propHaciaDelante (E v r) ls = resultado : (propHaciaDelante r salida)
+    where
+        resultado = P.zip (V.toList v) ls
+        salida = [ calculaSalida i |  i <- [0..n_pesos-1]]
+        n_pesos = P.length $ pesos (v V.! 0)
+        calculaSalida i = P.sum $ P.map (\(a,w) -> a*w) $ P.zip ls $ [ (pesos p)!!i | j <- [0..(V.length v)-1], let p = (v V.! j)]
 
 propHaciaAtras :: [[(Perceptron, Double)]] -> [Double] -> Double -> ([Double], Red)
 propHaciaAtras [ls] ys lr = (variaciones, capa)
