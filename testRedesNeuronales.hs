@@ -120,7 +120,7 @@ clasesVotos= [1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1,
   0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0]
 
 conjEntrenamiento :: [([Double], [Double])]
-conjEntrenamiento = [(ejemplosVotos!!i, [clasesVotos!!i])  | i <- [0..(length ejemplosVotos)-1] ]
+conjEntrenamiento = [(ejemplosVotos!!i, [clasesVotos!!i]) | i <- [0..(length ejemplosVotos)-1] ]
 
 pesosIniciales :: Double
 pesosIniciales = 1
@@ -142,18 +142,24 @@ redVotos = crear pesosIniciales entradasFicticias neuronasPorCapa funcionesDeAct
 estadisticas :: Int -> Double -> IO()
 estadisticas epochs lr = do
     let redVotos' = IA.retropropagacion redVotos conjEntrenamiento epochs lr 
-    putStrLn $ "### Datos del conjunto de entrenamiento ###"
+    putStrLn $ "╔═════════════════════════════════════════╗"
+    putStrLn $ "║   Datos del conjunto de entrenamiento   ║"
+    putStrLn $ "╚═════════════════════════════════════════╝"
     putStrLn $ "Número de ejemplos: " ++ (show (length ejemplosVotos))
-    putStrLn $ "###########################################\n"
-    putStrLn $ "### Datos de la red inicial ###"
+    putStrLn $ "═══════════════════════════════════════════\n"
+    putStrLn $ "╔═════════════════════════════════════════╗"
+    putStrLn $ "║          Datos de la red inicial        ║"
+    putStrLn $ "╚═════════════════════════════════════════╝"
     putStrLn $ "Pesos iniciales: " ++ (show pesosIniciales)
     putStrLn $ "Entradas ficticias: " ++ (show entradasFicticias)
     putStrLn $ "Neuronas por capa: " ++ (show neuronasPorCapa)
     putStrLn $ "Tasa de aprendizaje: " ++ (show lr)
     putStrLn $ "Número de épocas: " ++ (show epochs)
-    putStrLn $ "###########################################\n"
-    putStrLn $ "### Número de aciertos ###"
+    putStrLn $ "═══════════════════════════════════════════\n"
+    putStrLn $ "╔═════════════════════════════════════════╗"
+    putStrLn $ "║           Número de aciertos            ║ "
+    putStrLn $ "╚═════════════════════════════════════════╝"
     putStrLn $ "Antes del entrenamiento: " ++ (show (aciertosRed redVotos conjEntrenamiento))
     putStrLn $ "Después del entrenamiento: " ++ (show (aciertosRed redVotos' conjEntrenamiento))
-    putStrLn $ "##############################################"
+    putStrLn $ "═══════════════════════════════════════════"
     return ()

@@ -1,4 +1,7 @@
 import IA
+import Data.List
+
+-- PENDIENTE DE BORRAR
 
 ejemplosIris :: [[Double]]
 ejemplosIris=[
@@ -30,6 +33,7 @@ ejemplosIris=[
        [4.6, 3.6, 1 , 0.2],
        [5.1, 3.8, 1.9, 0.4],
        [6.2, 2.9, 4.3, 1.3],
+
        [5 , 2.3, 3.3, 1],
        [5 , 3.4, 1.6, 0.4],
        [6.4, 3.1, 5.5, 1.8],
@@ -83,29 +87,48 @@ clasesIris=[2, 1, 0, 2, 0, 2, 0, 1, 1, 1, 2, 1, 1, 1, 1, 0, 1, 1, 0, 0, 2, 1,
        0, 0, 2, 0, 0, 1, 1, 0, 2, 1, 0, 2, 2, 1, 0, 1, 1, 1, 2, 0, 2, 0,
        0, 1, 2, 2, 2, 2, 1, 2, 1, 1, 2, 2, 2, 2, 1, 2, 1, 0, 2, 1, 1, 1,
        1, 2, 0, 0, 2, 1, 0, 0, 1]
+
+claseIris' :: [Double] -> [[Double]]
+claseIris' [] = [] 
+claseIris' (l:ls)
+       | l == 0 = [[1,0,0]]++(claseIris' ls)
+       | l == 1 = [[0,1,0]]++(claseIris' ls)
+       | otherwise  = [[0,0,1]]++(claseIris' ls)
+
+clasesIris' :: [[Double]]
+clasesIris' = claseIris' clasesIris
+
 conjEntrenamiento :: [([Double], [Double])]
-conjEntrenamiento = [(ejemplosIris!!i, [clasesIris!!i])  | i <- [0..(length ejemplosIris)-1] ]
+conjEntrenamiento = [(ejemplosIris!!i, clasesIris'!!i)  | i <- [0..(length ejemplosIris)-1]]  
 
 pesosIniciales :: Double
 pesosIniciales = 1
 entradasFicticias :: Double
-entradasFicticias = -1
+entradasFicticias = 1
 neuronasPorCapa :: [Int]
-neuronasPorCapa = [4,16,8,4,1]
+neuronasPorCapa = [4,1,1,1,1,1,3]
 funcionesDeActivacion :: [Double -> Double]
-funcionesDeActivacion = [sigmoide, sigmoide,sigmoide, sigmoide]
+funcionesDeActivacion = [sigmoide, sigmoide,sigmoide, sigmoide,sigmoide, sigmoide]
 funcionesDerivadas :: [Double -> Double]
-funcionesDerivadas = [dSigmoide, dSigmoide, dSigmoide, dSigmoide]
+funcionesDerivadas = [dSigmoide, dSigmoide, dSigmoide, dSigmoide, dSigmoide, dSigmoide]
 
 aciertosRed :: Red -> [([Double], [Double])] -> Int 
-aciertosRed r ls = sum [ if (round (head (predecir r x)))==round(head l) then 1 else 0 | (x,l) <- ls]
+aciertosRed r ls = sum [ if (res x) == (obtenerClase l) then 1 else 0 | (x,l) <- ls]
+       where
+              res x = snd $ last $ sort (zip (predecir r x) [0..])
+              obtenerClase [1,0,0] = 0
+              obtenerClase [0,1,0] = 1
+              obtenerClase [0,0,1] = 2
+
+
+
 
 redIris :: Red
 redIris = crear pesosIniciales entradasFicticias neuronasPorCapa funcionesDeActivacion funcionesDerivadas
 
 estadisticas :: Int -> Double -> IO()
 estadisticas epochs lr = do
-    let redIris' = IA.retropropagacion redIris conjEntrenamiento epochs lr 
+    let redIris' = retropropagacion redIris conjEntrenamiento epochs lr 
     putStrLn $ "╔═════════════════════════════════════════╗"
     putStrLn $ "║   Datos del conjunto de entrenamiento   ║"
     putStrLn $ "╚═════════════════════════════════════════╝"
