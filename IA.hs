@@ -220,7 +220,7 @@ sigmoide :: Double -> Double
 sigmoide x = 1 / (1+exp(-x))
 
 dSigmoide :: Double -> Double
-dSigmoide x = sigmoide x / (1-sigmoide x)
+dSigmoide x = sigmoide x * (1-sigmoide x)
 
 dRelu :: Double -> Double
 dRelu x = umbral x
@@ -247,7 +247,7 @@ crear w a (c:cs) fs ds = E (V.fromList [ P 0 [ w | _ <- [1..p_sup]] id id | _ <-
         p_sup = P.head cs
 
 crear' :: Double -> Double -> [Int] -> [Double -> Double] -> [Double -> Double] -> Red
-crear' w a [c] (f:fs) (d:ds) = S (V.fromList [ P a [ w | _ <- [1..c-1]] f d | _ <- [1..c]])
+crear' w a [c] (f:fs) (d:ds) = S (V.fromList [ P a [ w ] f d | _ <- [1..c]])
 crear' w a (c:cs) (f:fs) (d:ds) = O (V.fromList [ (P a [ w |  _ <- [0..p_sup]] f d) | _ <- [1..c] ]) (crear' w a cs fs ds)
     where 
         p_sup = P.head cs
@@ -315,17 +315,13 @@ salidaPerceptron (P a ws f _ ) ls = f $ P.sum $ P.map (\(a,b) -> a*b) (P.zip ws 
 propHaciaDelante :: Red -> [Double] -> [[(Perceptron, Double)]]
 propHaciaDelante (S v) ls = [resultado]
     where
-        salida = [ fActivacion (v V.! x) $ ls!!x + (eFicticia (v V.!x)) * P.head (pesos (v V.!x))  | x <- [0..(V.length v)-1  ]]
-        ls' = [ fActivacion (v V.! x) $ ls!!x + (eFicticia (v V.!x)) * P.head (pesos (v V.!x))  | x <- [0..(V.length v)-1  ]]
-        resultado = [ (p, input p) |  x <- [0..((V.length v)-1)], let p = (v V.! x)] 
-        input p = P.sum $ P.map (\(a,b) -> a*b) (P.zip (pesos p) ((eFicticia p):ls))
+        resultado = P.zip (V.toList v) ls
         
 propHaciaDelante (O v r) ls = resultado : (propHaciaDelante r salida)
     where
         resultado = P.zip (V.toList v) ls
         salida = [ calculaSalida i |  i <- [0..n_pesos-1]]
-        n_pesos = (P.length (pesos (v V.! 0))) - 1  -- NOS HEMOS QUEDADO POR AQUÍ
-        --ls' = [ ls!!x + (eFicticia (v V.!x)) * P.head (pesos (v V.!x))  | x <- [0..(V.length v)-1  ]]
+        n_pesos = (P.length (pesos (v V.! 0))) - 1
         ls' = [ fActivacion (v V.! x) $ ls!!x + (eFicticia (v V.!x)) * P.head (pesos (v V.!x))  | x <- [0..(V.length v)-1  ]]
         calculaSalida i = P.sum $ P.map (\(a,w) -> a*w) $ P.zip ls' $ [ (pesos p)!!i | j <- [0..(V.length v)-1], let p = (v V.! j)]
 
@@ -336,56 +332,108 @@ propHaciaDelante (E v r) ls = resultado : (propHaciaDelante r salida)
         n_pesos = P.length $ pesos (v V.! 0)
         calculaSalida i = P.sum $ P.map (\(a,w) -> a*w) $ P.zip ls $ [ (pesos p)!!i | j <- [0..(V.length v)-1], let p = (v V.! j)]
 
-propHaciaAtras :: [[(Perceptron, Double)]] -> [Double] -> Double -> ([Double], Red)
-propHaciaAtras [ls] ys lr = (variaciones, capa)
+mostrar'' delante = P.map (\ls -> P.map (snd) ls) delante
+debug x = error $ show x
+
+propHaciaAtrasAux :: [[(Perceptron, Double)]] -> [Double] -> Double -> ([Double], Red)
+propHaciaAtrasAux [ls] ys lr = (variaciones, capa)
     where
         variaciones = P.map (\i -> derivada i * diferencia i) [0..(P.length ls)-1]
         derivada i = fDerivada p inp
             where
                 p = fst (ls!!i)
-                inp = snd (ls!!i)
+                inp = snd (ls!!i) + (P.head (pesos p)) * (eFicticia p)
         diferencia i = ys!!i - (fActivacion p inp)
             where
                 p = fst (ls!!i)
-                inp = snd (ls!!i)
+                inp = snd (ls!!i) + (P.head (pesos p)) * (eFicticia p)
         pesosAct = [P.head(pesos p) + lr*(eFicticia p)*(variaciones!!i) | i <- [0..(P.length ls)-1], let p = fst(ls!!i)]
         capa = S (V.fromList [p {pesos = (pesosAct!!i):(P.tail ws)} | i <- [0..(P.length ls)-1], let p = fst(ls!!i), let ws = pesos p])
 
-propHaciaAtras (l:ls) ys lr = (variaciones, capa)
+propHaciaAtrasAux (l:ls) ys lr = (variaciones, capa)
     where
         variaciones = P.map (\i -> derivada i * sumatorio i) [0..(P.length l)-1]
         derivada i = fDerivada p inp
             where
                 p = fst (l!!i)
-                inp = snd (l!!i)
-        sumatorio i = P.sum $ P.map (\(a,b) -> a*b) (P.zip (pesos p) (a:variaciones'))
+                inp = snd (l!!i) + (P.head (pesos p)) * (eFicticia p)
+        sumatorio i = P.sum $ P.map (\(a,b) -> a*b) (P.zip (P.tail (pesos p)) (variaciones'))
             where
                 a = eFicticia p
                 p = fst (l!!i)
-        resultado = propHaciaAtras ls ys lr
+        resultado = propHaciaAtrasAux ls ys lr
         variaciones' = fst resultado
         red' = snd resultado
-        actualizarPesos i = -- NOS HEMOS QUEDADO POR AQUÍ
+        actualizarPesos i =
             (ws!!0 + lr*(es!!0)*(vs!!0)):(P.map (\j -> ws!!j + lr*(es!!1)*(vs!!j)) [1..(P.length ws)-1])
             where
                 p = fst (l!!i) 
                 ws = pesos p
-                es = [eFicticia p, fActivacion p (snd (l!!i))]
+                es = [eFicticia p, fActivacion p (snd (l!!i) + (P.head (pesos p)) * (eFicticia p))]
                 vs = (variaciones!!i) : variaciones'
-
-
-        -- pesosAct = [ [ ws!!e + lr* | e <- [0..((P.length ws)-1)]] | i <- [0..(P.length l)-1], let p = fst (l!!i), let ws = pesos p]
         pesosAct = [ actualizarPesos i | i <- [0..(P.length l)-1]]
-        -- c = V.fromList [p {pesos = (pesosAct!!i):(P.tail ws)}]
         perceptrones' = V.fromList  [ p {pesos = pesosAct!!i} |  i <- [0..(P.length pesosAct)-1], let p = fst(l!!i)]
-        --perceptrones' = V.fromList  [ p {pesos = [0,0,0,0]} |  i <- [0..(P.length pesosAct)-1], let p = fst(l!!i)]
         capa = O perceptrones' (snd resultado)
+{--
+a3 = 0.7310585786300049
+a4 = 0.7310585786300049
+a5 = 0.6135163043587272
+a6 = 0.6135163043587272
+a7 = 0.5565156080050022
 
---      C1      C2
---       |
---   -  n1      |
---   -  n2      n4
---   -  n3  {(p1,p2) = 23412, (p2,p3 = agsfg)}
+A7 = 0.5565156080050022*(1-0.5565156080050022)*(1-0.5565156080050022)  = 0.10945460266491949
+A8 = 0.5565156080050022*(1-0.5565156080050022)*(1-0.5565156080050022)  = 0.10945460266491949
+A6 = 0.6135163043587272*(1-0.6135163043587272)*(1*0.10945460266491949 + 1*0.10945460266491949 )  = 5.190644796136012e-2
+A5 = 5.190644796136012e-2
+A4 = 2.2772590357864077e-2 
+A3 = 2.2772590357864077e-2 
+
+
+w08 = 0.9890545397335081
+w07 = 0.9890545397335081
+
+W06 = 0.9948093552038639
+w67 = 1.0067152183322035
+w68 = 1.0067152183322035
+
+W05 = 0.9948093552038639
+w57 = 1.0067152183322035
+w58 = 1.0067152183322035
+
+W04 = 0.9979589145837238    #### 
+w45 = 1.0037946654068364
+w46 = 1.0037946654068364
+
+W03 = 0.9979589145837238    #### 
+w35 = 1.0037946654068364
+w36 = 1.0037946654068364
+
+w45 = 1.0037946654068364
+w46 = 1.0037946654068364
+
+w14 =
+w13 = 
+
+a0=0.0, ws=[1.0,1.0020410854162762]
+
+--}
+
+propHaciaAtras :: [[(Perceptron, Double)]] -> [Double] -> Double -> Red
+propHaciaAtras (l:ls) ys lr = red
+    where
+        resultado = propHaciaAtrasAux ls ys lr
+        variaciones' = fst resultado
+        red' = snd resultado
+        red = E perceptrones' red'
+        actualizarPesos i =
+            (P.map (\j -> ws!!j + lr*(es)*(vs!!j)) [0..(P.length ws)-1])
+            where
+                p = fst (l!!i)
+                ws = pesos p
+                es = snd (l!!i)
+                vs = variaciones'
+        pesosAct = [ actualizarPesos i | i <- [0..(P.length l)-1]]
+        perceptrones' = V.fromList  [ p {pesos = pesosAct!!i} |  i <- [0..(P.length pesosAct)-1], let p = fst(l!!i)]
 
 
   {-
@@ -402,16 +450,20 @@ retropropagacion red entrenamiento 0 lr = red
 retropropagacion red entrenamiento epochs lr = retropropagacion red' entrenamiento (epochs-1) lr
     where
         red' = retropropagacionAux red entrenamiento lr
-        
+
 retropropagacionAux :: Red -> [([Double], [Double])] -> Double -> Red
 retropropagacionAux red [] lr = red
 retropropagacionAux red (e:entrenamiento) lr = retropropagacionAux red' entrenamiento lr
     where
         propDelante = propHaciaDelante red (fst e)
-        red' = snd $ propHaciaAtras propDelante (snd e) lr
+        red' = propHaciaAtras propDelante (snd e) lr
 
+
+cuenta_bien :: Red -> Int -> Double ->[([Double], [Double])] -> Int 
+cuenta_bien r e f ls = P.sum [ if (round (P.head (predecir ret x)))==round(P.head l) then 1 else 0 | (x,l) <- ls]
+    where
+        ret = retropropagacion r ls e f
 {--
-
 Entrada  Salida
 1 1        1
 0 0        0
@@ -423,6 +475,7 @@ Entrada  Salida
 [([1,1],[1]), ([0,0],[0]), ([1,0],[1]), ([0,1],[1])]
 
 [([1,1],[0]), ([0,0],[0]), ([1,0],[1]), ([0,1],[1])]
+
 
 
 
@@ -508,13 +561,13 @@ como mínimo, de forma natural:
 2 usos de guardas  -- COMPLETADO
 2 usos de case of -- PENDIENTE (0/2)
 2 usos de listas por comprensión -- COMPLETADO
-2 usos de orden superior -- PENDIENTE (1/2)
+2 usos de orden superior -- PENDIENTE (2/2)
 declaraciones de tipos para todas las funciones definida -- COMPLETADO
 2 usos de evaluación perezosa -- PENDIENTE (0/2)
 Creación de un módulo -- COMPLETADO
 2 tipos de datos nuevos y usos de éstos. -- COMPLETADO
 2 tipos de datos abstractos o librerías vistos en la asignatura (por 
-ejemplo, pilas, colas, map, matrix, array). -- PENDIENTE (0/2)
+ejemplo, pilas, colas, map, matrix, array). -- PENDIENTE (1/2)
 
 
 
