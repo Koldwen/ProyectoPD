@@ -137,7 +137,7 @@ aciertosRed :: Red -> [([Double], [Double])] -> Int
 aciertosRed r ls = sum [ if (round (head (predecir r x)))==round(head l) then 1 else 0 | (x,l) <- ls]
 
 redVotos :: Red
-redVotos = crear pesosIniciales entradasFicticias neuronasPorCapa funcionesDeActivacion funcionesDerivadas
+redVotos = red pesosIniciales entradasFicticias neuronasPorCapa funcionesDeActivacion funcionesDerivadas
 
 estadisticas :: Int -> Double -> IO()
 estadisticas epochs lr = do
