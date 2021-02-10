@@ -129,9 +129,9 @@ entradasFicticias = 1
 neuronasPorCapa :: [Int]
 neuronasPorCapa = [16,4,2,1]
 funcionesDeActivacion :: [Double -> Double]
-funcionesDeActivacion = [IA.sigmoide, IA.sigmoide,IA.sigmoide]
+funcionesDeActivacion = [sigmoide, sigmoide,sigmoide]
 funcionesDerivadas :: [Double -> Double]
-funcionesDerivadas = [IA.dSigmoide, IA.dSigmoide, IA.dSigmoide]
+funcionesDerivadas = [dSigmoide, dSigmoide, dSigmoide]
 
 aciertosRed :: Red -> [([Double], [Double])] -> Int 
 aciertosRed r ls = sum [ if (round (head (predecir r x)))==round(head l) then 1 else 0 | (x,l) <- ls]

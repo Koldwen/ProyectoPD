@@ -1,14 +1,15 @@
 -- Proyecto PD.
 -- Búsqueda en Escalada con reinicio
 -- Enfriamiento Simulado
--- Algoritmo Genético
--- PSO
 -- Redes Neuronales
+-- ----------------
+-- ----------------
 -- ARCHIVO: IA
 module IA 
 (
     Ind,
     Val,
+
     Gi,
     Gs,
     Fv,
@@ -449,5 +450,4 @@ ejemplo, pilas, colas, map, matrix, array). -- PENDIENTE (2/2)
     La superación del trabajo también dependerá de la realización de una defensa de este, con
     ambos miembros del grupo y los profesores de la asignatura. Éste tendrá lugar, a ser posible
     online, durante la semana posterior a la fecha de entrega.
-
 --}

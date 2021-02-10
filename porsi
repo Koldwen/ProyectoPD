@@ -1,9 +1,0 @@
-## **Creación de tipos.**
-Para resolver problemas con el algoritmo de Búsqueda en Escalada (con y sin reinicio) y Enfriamiento Simulado, es
-necesario definir los siguientes tipos:
-
-* [Función Genera Inicial](#funcion-genera-inicial)     - Función que genera un estado inicial.
-* [Función Genera Sucesor](#funcion-genera-sucesor)     - Función que genera un estado sucesor a partir de otro.
-* [Función de valoración](#funcion-valoracion)      - Función que valora un estado.
-* [Función mejor](#me)              - Función que determina si un estado es mejor que otro.
-* [Problema a resolver](#problema)  - Tipo de datos que contiene toda la información anterior.
