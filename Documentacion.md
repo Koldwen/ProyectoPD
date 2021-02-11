@@ -1,5 +1,10 @@
 # **Librería IA (Inteligencia Artificial) para Haskell**
 
+*Si utilizas Visual Code y quieres verlo en un formato correcto puedes hacer clic derecho sobre Documentacion
+.md y pulsar en **Open Preview**.* 
+
+*También puedes pulsar **Ctrl+Mayús+V***
+
 ## **Asignatura**
 * **Programación Declarativa** - [Página web](http://www.cs.us.es/cursos/pd/Contents.html#home)
 * **Tercero de Ingeniería Informática - Tecnologías Informáticas**
@@ -7,7 +12,7 @@
 
 
 ## **Autores**
-* **Andrés Carrasco Garzón** - *andcargar* - *andcargar@alumn.us.es*
+* **Andrés Carrasco Garzón** - *andcargar* - *andcargar@alum.us.es*
 * **Bruno González Llaga** - *brugonlla* - *brugonlla@alum.us.es*
 
 ## **Resumen**
@@ -15,23 +20,23 @@
 * **Problema a resolver:** Implementación de una librería para resolver problemas de optimización
 
 ## **Índice**
-* **Descripción** - Página 1
-* **Estructura del código** - Página 1
-* **Elementos mínimos exigidos** - Página 1
-* **Ejemplos propuestos** - Página 1
+* [**Descripción**](#descripción)
+* [**Estructura del código**](#estructura-el-código)
+* [**Elementos mínimos exigidos**](#elementos-mínimos-exigidos)
+* [**Ejemplos propuestos**](#ejemplos-propuestos)
 
 ## **Descripción**
 
 El proyecto consiste en la implementación de una librería con algunos de los algoritmos y estructuras vistas en la asignatura de Inteligencia Artificial. De entre todo, hemos decidido implementar:
 
-* [Algoritmos de búsqueda local](#algoritmos-de-busqueda-local) 
-    - [Búsqueda en escalada](#busqueda-en-escalada)
-    - [Búsqueda en escalada con reinicio](#busqueda-en-escalada)
+* [Algoritmos de búsqueda local](#algoritmos-de-búsqueda-local) 
+    - [Búsqueda en escalada](#búsqueda-en-escalada)
+    - [Búsqueda en escalada con reinicio](#búsqueda-en-escalada-con-reinicio)
     - [Enfriamiento simulado](#enfriamiento-simulado)
 * [Redes neuronales](#redes-neuronales)
-    - [Creación de la red](#busqueda-en-escalada)
-    - [Predicción de valores](#busqueda-en-escalada)
-    - [Algoritmo de retropropagación](#busqueda-en-escalada)
+    - [Creación de la red](#creación-de-la-red)
+    - [Predicción de valores](#predicción-de-valores)
+    - [Algoritmo de retropropagación](#algoritmo-de-retropropagación)
 
 
 ### **Algoritmos de búsqueda local**
@@ -62,9 +67,6 @@ El pseudocódigo usado es el siguiente:
         - 3.3.1. Si la nueva solución es mejor que la actual, entonces sustituimos la actual por la nueva.
         - 3.3.2. Si la nueva solución es peor que la actual, entonces no cambiamos nada.
 4. Devolvemos la solución actual.
-
-<br>
-<br>
 
 #### **Enfriamiento simulado**
 > Es un algoritmo de búsqueda metaheurística para problemas de optimización global; el objetivo general de este tipo de algoritmos es encontrar una buena aproximación al valor óptimo de una función en un espacio de búsqueda grande. A este valor óptimo se lo denomina "óptimo global". En cada iteración, el método de enfriamiento simulado evalúa algunos vecinos del estado actual *s* y probabilísticamente decide entre efectuar una transición a un nuevo estado *s'* o quedarse en el estado *s*. **- Wikipedia**
@@ -119,18 +121,6 @@ El pseudocódigo usado es el siguiente:
         - 2.1.1 Calcular la salida a<sub>i</sub> de cada unidad i, propagando valores hacia adelante.
         - 2.1.2 Calcular los errores ∆i de cada unidad i y actualizar los pesos w<sub>ji</sub>, propagando valores hacia detrás
 3. Devolver red
-
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
 
 ## **Estructura el código**
 Nuestra libreria esta dividida en varias secciones:
@@ -255,6 +245,7 @@ umbral x
     |  x > 0 = ...
     |  x <= 0 = ...
 ```
+
 **2 usos de case of** <br>
 *IA.hs - Línea 125*
 ```
@@ -264,14 +255,6 @@ redAux w a cs (f:fs) (d:ds) =
         [c] ->  ...
         (c:cs) -> ...
 ```
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
 
 *IA.hs - Línea 145*
 ```
@@ -325,6 +308,7 @@ fValoracion ls = ...
     where
         ls' = take (length ls-1) [((ls!!i), (ls!!(i+1))) | i <- [0..]]
 ```
+
 **Creación de un módulo** <br>
 *IA.hs - Línea 8*
 ```
@@ -334,9 +318,6 @@ module IA
     Val,
     ...
 ```
-<br>
-<br>
-<br>
 
 **2 tipos de datos nuevos y usos de éstos.** <br>
 *IA.hs - Línea 40 y 371*
@@ -376,7 +357,7 @@ arrayToRed ls = E vs (arrayToRedAux vss)
 
 Para resolver un problema mediante búsqueda en escalada, es necesario modelar antes el problema mediante el tipo de datos *Problema*.
 
-Cargamos el archivo "TSP.hs" de la siguiente manera:
+Aunque podríamos cargar el archivo "TSPAndalucia.hs", para este ejemplo cargamos el archivo "TSP.hs" de la siguiente manera:
 ```
 ghci ./ejemplos/TSP.hs
 ```
@@ -440,7 +421,7 @@ Valoración: 67.1819161817682
 ### **Búsqueda en escalada con reinicio**
 Para resolver un problema mediante búsqueda en escalada con reinicio, es necesario modelar antes el problema mediante el tipo de datos *Problema*.
 
-Cargamos el archivo "TSPAndalucia.hs" de la siguiente manera:
+Aunque podríamos cargar el archivo "TSP.hs", para este ejemplo cargamos  "TSPAndalucia.hs" de la siguiente manera:
 ```
 ghci ./ejemplos/TSPAndalucia.hs
 ```
@@ -469,7 +450,7 @@ Valoración: 929.9255755927757
 ### **Enfriamiento simulado**
 Para resolver un problema mediante enfriamiento simulado, es necesario modelar antes el problema mediante el tipo de datos *Problema*.
 
-Cargamos el archivo "TSP.hs" de la siguiente manera:
+Aunque podríamos cargar el archivo "TSPAndalucia.hs", para este ejemplo cargamos el archivo "TSP.hs" de la siguiente manera:
 ```
 ghci ./ejemplos/TSP.hs
 ```
@@ -479,7 +460,7 @@ Disponemos del problema del viajante en un cuadrado de N puntos ya modelado, .
 
 Para ver la solución final tras ejecutar el algoritmo de enfriamiento simulado, basta con llamar a la siguiente función:
 ```
-solucion
+solucionEnfriamientoSimulado
 ```
 Que, internamente, realiza la siguiente ejecución:
 ```
@@ -528,11 +509,6 @@ redEntrenada = retropropagacion redVotos conjEntrenamiento 100 0.1
 redEntrenada
 
 ```
-
-<br>
-<br>
-<br>
-<br>
 
 Donde el primer parámetro es una red, el segundo un conjunto de entrenamiento (de la forma [([entrada],[salida esperada])]), el tercero es el número de épocas (epochs), y el cuarto es la tasa de aprendizaje.
 
