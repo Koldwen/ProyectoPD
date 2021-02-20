@@ -20,6 +20,8 @@ module IA
     Red,
     problema,
     red,
+    redToArray,
+    arrayToRed,
     sigmoide,
     relu,
     dSigmoide,
